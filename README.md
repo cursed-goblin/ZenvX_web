@@ -22,7 +22,7 @@ The contact form is handled by a single **Cloudflare Pages serverless Function**
 - SEO meta tags, Open Graph, Twitter cards, `sitemap.xml`, and `robots.txt`
 
 ---
-
+ 
 ## 📁 File Structure
 
 ```
