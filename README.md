@@ -98,13 +98,15 @@ Secret key (TURNSTILE_SECRET_KEY):  1x0000000000000000000000000000000AA
    - **Framework preset:** None
    - **Build command:** *(leave empty)*
    - **Build output directory:** `/` (repo root — where `index.html` lives)
-4. Add the environment variables under **Settings → Environment variables** (for both Production and Preview):
+4. Add the environment variables under **Settings → Variables and secrets** (for both Production and Preview):
    - `RESEND_API_KEY`
    - `CONTACT_FROM`
    - `CONTACT_TO`
    - `TURNSTILE_SECRET_KEY`
 5. Deploy. Cloudflare auto-detects `functions/api/contact.js` and serves it at `https://<your-site>/api/contact`.
 6. Add your custom domain `www.zenvx.in` under the project's **Custom domains** tab.
+
+> **Environment variables only take effect on deployments created _after_ they were added.** After adding or changing any variable, trigger a new deployment (Deployments → ⋯ → Retry deployment, or push a commit).
 
 The included `wrangler.toml` (`pages_build_output_dir = "."`) and `_routes.json` make the project explicitly a Pages project with Functions, which is what allows Cloudflare to detect and run `/api/contact`.
 
@@ -116,11 +118,11 @@ After deploying, confirm `https://www.zenvx.in/sitemap.xml` and `https://www.zen
 
 1. In the Cloudflare dashboard go to **Turnstile → Add site**.
 2. Add your domain (`zenvx.in`) and create a widget. You'll get a **Site key** (public) and a **Secret key** (private).
-3. Put the **Site key** in `contact.html` — replace `YOUR_TURNSTILE_SITE_KEY` in:
+3. Put the **Site key** in `contact.html` — the widget is already wired up:
    ```html
-   <div class="cf-turnstile" data-sitekey="YOUR_TURNSTILE_SITE_KEY" data-theme="dark"></div>
+   <div class="cf-turnstile" data-sitekey="0x4AAAAAADjFGe7MnrtJ2n0y" data-theme="dark"></div>
    ```
-4. Put the **Secret key** in the `TURNSTILE_SECRET_KEY` environment variable (never in the HTML/JS).
+4. Put the **Secret key** in the `TURNSTILE_SECRET_KEY` environment variable (never in the HTML/JS). It must belong to the **same** widget as the site key above.
 
 The Turnstile script is already loaded in `contact.html`:
 ```html
@@ -134,13 +136,30 @@ The server function rejects any submission whose token is missing or fails verif
 
 1. Create a free account at [resend.com](https://resend.com).
 2. Go to **Domains** and add **zenvx.in**, then add the DNS records Resend gives you (SPF/DKIM) at your domain registrar. Wait for the domain to show as **Verified**.
-   - Until the domain is verified you can test with Resend's sandbox sender `onboarding@resend.dev` as the `CONTACT_FROM` value.
+   - **You cannot send `from` an address on an unverified domain.** Until `zenvx.in` is verified, sending from `noreply@zenvx.in` will be rejected by Resend (this is what causes an HTTP 502 from `/api/contact`).
+   - To test before DNS is ready, set `CONTACT_FROM=onboarding@resend.dev` and set `CONTACT_TO` to the email address you signed up to Resend with (sandbox sending only delivers to your own account email).
 3. Go to **API Keys → Create API Key** (give it *Sending access*). Copy the key — it starts with `re_`. This is your `RESEND_API_KEY`.
 4. Decide your sender and recipients:
    - **`CONTACT_FROM`** — a verified address on your domain, e.g. `ZenvX Website <noreply@zenvx.in>`.
    - **`CONTACT_TO`** — where enquiries land, e.g. `sk@zenvx.in, abhi@zenvx.in` (comma-separated).
 
 > The function also sets `reply_to` to the visitor's email address, so you can reply to enquiries directly from your inbox.
+
+---
+
+## 🧪 Troubleshooting the contact form
+
+The form now shows the **exact** server error on failure. Common cases:
+
+| Symptom | Cause | Fix |
+| --- | --- | --- |
+| `Resend rejected the email (HTTP 403) … domain is not verified` | `CONTACT_FROM` uses an unverified domain | Verify `zenvx.in` in Resend, or use `onboarding@resend.dev` for testing |
+| `Email service is not configured (missing RESEND_API_KEY)` | Env var missing on the live deployment | Add `RESEND_API_KEY`, then **redeploy** |
+| `Captcha is not configured (missing TURNSTILE_SECRET_KEY)` | Env var missing | Add `TURNSTILE_SECRET_KEY`, then **redeploy** |
+| `Captcha verification failed` | Secret key doesn't match the site key's widget | Use the secret + site key from the **same** Turnstile widget |
+| `Request failed (HTTP 404)` on `/api/contact` | Imported as a Worker, or Functions not detected | Recreate as a **Pages** project (see deploy section) |
+
+For the precise error, open your Pages project → **Deployments → (active deployment) → Functions / Real-time Logs**, then submit the form once.
 
 ---
 
