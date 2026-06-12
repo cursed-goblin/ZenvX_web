@@ -28,6 +28,14 @@
 			.trim();
 	}
 
+	// Escape text before inserting into innerHTML status messages.
+	function escHtml(value) {
+		return String(value == null ? "" : value)
+			.replace(/&/g, "&amp;")
+			.replace(/</g, "&lt;")
+			.replace(/>/g, "&gt;");
+	}
+
 	function isEmail(v) {
 		return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 	}
@@ -180,8 +188,9 @@
 				try { body = await res.json(); } catch (_) { /* non-JSON response */ }
 
 				if (!res.ok || !body || body.ok !== true) {
-					const msg = (body && body.error) ? body.error : ("Request failed (" + res.status + ").");
-					// Surface captcha-specific failures next to the widget
+					let msg = (body && body.error) ? body.error : ("Request failed (HTTP " + res.status + ").");
+					if (body && body.detail) msg += " — " + body.detail;
+					// Surface captcha-specific failures next to the widget too
 					if (body && body.fields && body.fields.indexOf("captcha") !== -1) {
 						setError("captcha", msg);
 					}
@@ -196,8 +205,8 @@
 				if (btn) startCooldown(btn);
 			} catch (err) {
 				console.error(err);
-				setStatus(form, "error",
-					"Something went wrong while sending your message. Please try again.");
+				const detail = (err && err.message) ? err.message : "Please try again.";
+				setStatus(form, "error", "Couldn't send your message: " + escHtml(detail));
 				resetCaptcha(); // token is single-use; get a fresh one for the retry
 				if (btn) btn.disabled = false;
 			} finally {
