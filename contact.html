@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Contact — ZenvX AI Studio</title>
+
+	<!-- SEO -->
+	<meta name="description" content="Get in touch with ZenvX AI Studio. Reach our founders directly or send us a message through the contact form." />
+	<meta name="keywords" content="ZenvX, AI Studio, contact, ZenvX OS, AI Research, get in touch" />
+	<meta name="author" content="ZenvX AI Studio" />
+	<meta property="og:type" content="website" />
+	<meta property="og:title" content="Contact — ZenvX AI Studio" />
+	<meta property="og:description" content="Get in touch with ZenvX AI Studio — we'll get back to you soon." />
+	<meta property="og:url" content="https://www.zenvx.in/contact.html" />
+	<meta property="og:site_name" content="ZenvX AI Studio" />
+	<meta name="twitter:card" content="summary_large_image" />
+	<meta name="twitter:title" content="Contact — ZenvX AI Studio" />
+	<meta name="twitter:description" content="Get in touch with ZenvX AI Studio — we'll get back to you soon." />
+	<link rel="canonical" href="https://www.zenvx.in/contact.html" />
+	<meta name="theme-color" content="#05060a" />
+
+	<link rel="preconnect" href="https://fonts.googleapis.com" />
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+
+	<link rel="stylesheet" href="css/style.css" />
+	<link rel="stylesheet" href="css/animations.css" />
+	<link rel="stylesheet" href="css/responsive.css" />
+</head>
+<body>
+	<div class="page-fade"></div>
+
+	<header class="navbar">
+		<nav class="nav-inner" aria-label="Primary">
+			<a href="index.html" class="logo"><span class="z">Zenv</span><span class="x">X</span></a>
+			<ul class="nav-links">
+				<li><a href="index.html">Home</a></li>
+				<li><a href="about.html">About</a></li>
+				<li><a href="products.html">Products</a></li>
+				<li><a href="upcoming.html">Upcoming</a></li>
+				<li><a href="contact.html">Contact</a></li>
+			</ul>
+			<button class="hamburger" aria-label="Toggle menu" aria-expanded="false"><span></span><span></span><span></span></button>
+		</nav>
+	</header>
+
+	<!-- HERO -->
+	<section class="page-hero">
+		<div class="container">
+			<span class="eyebrow reveal">Contact</span>
+			<h1 class="clip-reveal">Let's <span class="gradient-text">Build Together</span></h1>
+			<span class="underline draw-underline"></span>
+			<p class="reveal">Questions, collaborations, or just saying hi — we'd love to hear from you.</p>
+		</div>
+	</section>
+
+	<section class="section section-tight">
+		<div class="container">
+			<div class="contact-layout">
+				<!-- CONTACT INFO -->
+				<div>
+					<article class="founder-card glass reveal-left" style="margin-bottom:22px;">
+						<div class="founder-avatar">SK</div>
+						<h3>Srihari Kalesh</h3>
+						<div class="founder-role">Co-Founder</div>
+						<a class="contact-line" href="mailto:sk@zenvx.in"><span class="ci">📧</span> sk@zenvx.in</a>
+						<a class="contact-line" href="tel:+917591927789"><span class="ci">📞</span> +91 7591927789</a>
+					</article>
+					<article class="founder-card glass reveal-left">
+						<div class="founder-avatar">AT</div>
+						<h3>Abhinav T S</h3>
+						<div class="founder-role">Co-Founder</div>
+						<a class="contact-line" href="mailto:abhi@zenvx.in"><span class="ci">📧</span> abhi@zenvx.in</a>
+						<a class="contact-line" href="tel:+919495029709"><span class="ci">📞</span> +91 9495029709</a>
+					</article>
+				</div>
+
+				<!-- CONTACT FORM -->
+				<div class="form-card glass reveal-right">
+					<h3 style="margin-bottom:6px;">Send a Message</h3>
+					<p style="color:var(--text-faint);font-size:0.9rem;margin-bottom:24px;">We typically reply within a day.</p>
+
+					<form id="contact-form" novalidate>
+						<!-- Honeypot (hidden from humans) -->
+						<div class="honeypot" aria-hidden="true">
+							<label>Company Website<input type="text" name="company_website" tabindex="-1" autocomplete="off" /></label>
+						</div>
+
+						<div class="form-group">
+							<label for="full_name">Full Name *</label>
+							<input class="form-control" type="text" id="full_name" name="full_name" placeholder="Jane Doe" autocomplete="name" />
+							<span class="field-error" data-error-for="full_name"></span>
+						</div>
+
+						<div class="form-group">
+							<label for="phone">Phone Number *</label>
+							<input class="form-control" type="tel" id="phone" name="phone" placeholder="+91 98765 43210" inputmode="tel" autocomplete="tel" />
+							<span class="field-error" data-error-for="phone"></span>
+						</div>
+
+						<div class="form-group">
+							<label for="email">Email Address *</label>
+							<input class="form-control" type="email" id="email" name="email" placeholder="you@example.com" autocomplete="email" />
+							<span class="field-error" data-error-for="email"></span>
+						</div>
+
+						<div class="form-group">
+							<label for="purpose">Purpose / Subject *</label>
+							<select class="form-control" id="purpose" name="purpose">
+								<option value="">Select a purpose…</option>
+								<option value="General Inquiry">General Inquiry</option>
+								<option value="Collaboration">Collaboration</option>
+								<option value="Partnership">Partnership</option>
+								<option value="Product Support">Product Support</option>
+								<option value="Careers">Careers</option>
+								<option value="Other">Other</option>
+							</select>
+							<span class="field-error" data-error-for="purpose"></span>
+						</div>
+
+						<div class="form-group">
+							<label for="message">Message * <span style="color:var(--text-faint);font-weight:400;">(min 20 characters)</span></label>
+							<textarea class="form-control" id="message" name="message" placeholder="Tell us what's on your mind…"></textarea>
+							<span class="field-error" data-error-for="message"></span>
+						</div>
+
+						<button type="submit" class="btn btn-primary submit-btn">
+							<span class="spinner"></span>
+							<span class="btn-text">Send Message</span>
+						</button>
+
+						<div class="form-status" role="status" aria-live="polite"></div>
+					</form>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<footer class="footer">
+		<div class="container">
+			<div class="footer-grid">
+				<div class="footer-brand">
+					<a href="index.html" class="logo"><span class="z">Zenv</span><span class="x">X</span></a>
+					<p>Building the future of AI, operating systems, and intelligent agents from research to reality.</p>
+				</div>
+				<div><h4>Navigate</h4><div class="footer-links">
+					<a href="index.html">Home</a><a href="about.html">About</a><a href="products.html">Products</a><a href="upcoming.html">Upcoming</a><a href="contact.html">Contact</a>
+				</div></div>
+				<div><h4>Connect</h4><div class="socials">
+					<a href="#" aria-label="X / Twitter">𝕏</a><a href="#" aria-label="GitHub">⎞</a><a href="#" aria-label="LinkedIn">in</a><a href="mailto:sk@zenvx.in" aria-label="Email">@</a>
+				</div></div>
+			</div>
+			<div class="footer-bottom">© <span data-year>2025</span> ZenvX AI Studio. All rights reserved.</div>
+		</div>
+	</footer>
+
+	<!-- GSAP -->
+	<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+	<!-- App scripts (form posts to the /api/contact Cloudflare Pages Function) -->
+	<script src="js/animations.js"></script>
+	<script src="js/main.js"></script>
+	<script src="js/contact.js"></script>
+</body>
+</html>

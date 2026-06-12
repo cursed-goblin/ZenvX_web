@@ -1,0 +1,64 @@
+/* =========================================================
+   ZenvX AI Studio — responsive.css
+   Tablet + mobile breakpoints.
+   ========================================================= */
+
+/* Large tablet / small laptop */
+@media (max-width: 1024px) {
+	.split { grid-template-columns: 1fr; gap: 32px; }
+	.contact-layout { grid-template-columns: 1fr; }
+	.footer-grid { grid-template-columns: 1fr 1fr; }
+	.cols-5 { grid-template-columns: repeat(3, 1fr); }
+	.section { padding: 90px 0; }
+}
+
+/* Tablet */
+@media (max-width: 860px) {
+	.nav-links {
+		position: fixed;
+		top: var(--nav-h);
+		right: 0;
+		height: calc(100vh - var(--nav-h));
+		width: min(78vw, 320px);
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 8px;
+		padding: 30px 28px;
+		background: rgba(8, 10, 18, 0.96);
+		backdrop-filter: blur(22px);
+		border-left: 1px solid var(--border);
+		transform: translateX(100%);
+		transition: transform .35s cubic-bezier(.4,0,.2,1);
+	}
+	.nav-links.open { transform: translateX(0); }
+	.nav-links a { font-size: 1.1rem; padding: 10px 0; width: 100%; }
+	.hamburger { display: flex; }
+
+	.stat-grid { grid-template-columns: repeat(2, 1fr); }
+	.cols-3, .cols-4 { grid-template-columns: repeat(2, 1fr); }
+	.h-timeline { grid-template-columns: repeat(2, 1fr); }
+	.h-timeline::before { display: none; }
+	.founder-grid { grid-template-columns: 1fr; }
+}
+
+/* Mobile */
+@media (max-width: 560px) {
+	.container { padding-inline: 18px; }
+	.section { padding: 70px 0; }
+	.stat-grid,
+	.cols-2, .cols-3, .cols-4, .cols-5 { grid-template-columns: 1fr; }
+	.h-timeline { grid-template-columns: 1fr; }
+	.footer-grid { grid-template-columns: 1fr; gap: 30px; }
+	.hero-cta { flex-direction: column; align-items: stretch; }
+	.hero-cta .btn { justify-content: center; }
+	.btn { width: 100%; justify-content: center; }
+	.neon-card, .form-card, .founder-card, .feature-card { padding: 26px 22px; }
+	.float-card { display: none; }
+	.section-head { margin-bottom: 40px; }
+}
+
+/* Very small */
+@media (max-width: 380px) {
+	.hero h1 { font-size: 2rem; }
+	.logo { font-size: 1.2rem; }
+}
