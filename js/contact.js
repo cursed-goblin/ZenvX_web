@@ -3,7 +3,7 @@
    Contact form (client). Validates, sanitizes, blocks bots
    (honeypot), rate-limits, then POSTs to a Cloudflare Pages
    serverless Function at /api/contact which sends the email
-   via EmailJS server-side. No database, no client-side keys.
+   via Resend server-side. No database, no client-side keys.
    ========================================================= */
 (function () {
 	"use strict";

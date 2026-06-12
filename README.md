@@ -2,7 +2,7 @@
 
 A modern, premium, futuristic, highly animated website for **ZenvX AI Studio**.
 Built with pure HTML5, CSS3, and vanilla JavaScript — **no framework, no build step.**
-The contact form is handled by a single **Cloudflare Pages serverless Function** that sends email via **EmailJS** (server-side). **No database.**
+The contact form is handled by a single **Cloudflare Pages serverless Function** that sends email via **Resend** (server-side). **No database.**
 
 **Live domain:** [www.zenvx.in](https://www.zenvx.in)
 
@@ -18,7 +18,7 @@ The contact form is handled by a single **Cloudflare Pages serverless Function**
 - Interactive **mouse-parallax** hero, floating glass cards, animated gradients
 - Smooth **page-to-page fade transitions**
 - Graceful fallback: if the GSAP CDN is blocked, all content still renders (no hidden sections)
-- Contact form with client-side validation, honeypot spam protection, input sanitization, and a 60s rate limit, posting to a **Cloudflare Pages Function** that sends mail through **EmailJS** — **all email credentials stay server-side**
+- Contact form with client-side validation, honeypot spam protection, input sanitization, and a 60s rate limit, posting to a **Cloudflare Pages Function** that sends mail through **Resend** — **the API key stays server-side**
 - SEO meta tags, Open Graph, Twitter cards, `sitemap.xml`, and `robots.txt`
 
 ---
@@ -43,7 +43,7 @@ zenvx-website/
 │   └── contact.js      # Form validation + POST to the serverless function
 ├── functions/
 │   └── api/
-│       └── contact.js  # Cloudflare Pages Function → sends email via EmailJS
+│       └── contact.js  # Cloudflare Pages Function → sends email via Resend
 ├── assets/
 │   └── images/         # Your image assets
 ├── sitemap.xml
@@ -71,30 +71,24 @@ wrangler pages dev .
 Set your secrets locally by creating a `.dev.vars` file in the project root (do **not** commit it):
 
 ```
-EMAILJS_SERVICE_ID=your_service_id
-EMAILJS_TEMPLATE_ID=your_template_id
-EMAILJS_PUBLIC_KEY=your_public_key
-EMAILJS_PRIVATE_KEY=your_private_key
+RESEND_API_KEY=re_your_api_key
+CONTACT_FROM=ZenvX Website <noreply@zenvx.in>
+CONTACT_TO=sk@zenvx.in, abhi@zenvx.in
 ```
 
 ---
 
-## 📧 EmailJS Setup
+## 📧 Resend Setup
 
-1. Create a free account at [emailjs.com](https://www.emailjs.com).
-2. Connect your email service (Gmail or custom SMTP).
-3. Create an email template with these variables:
-   `from_name`, `phone`, `from_email`, `purpose`, `message`, `time`, `ip`
-   - In the template's **"To"** field, add both recipients: `sk@zenvx.in, abhi@zenvx.in`
-     (or use the `to_email` variable, which the function passes as `sk@zenvx.in, abhi@zenvx.in`).
-4. **Enable server-side sending:** in EmailJS go to **Account → Security** and turn on
-   **"Allow EmailJS API for non-browser applications"**. This is required because the
-   email is now sent from the Cloudflare Function, not the browser.
-5. Collect four values for the environment variables below:
-   - **Service ID** → `EMAILJS_SERVICE_ID`
-   - **Template ID** → `EMAILJS_TEMPLATE_ID`
-   - **Public Key** (Account → General) → `EMAILJS_PUBLIC_KEY`
-   - **Private Key** (Account → Security) → `EMAILJS_PRIVATE_KEY`
+1. Create a free account at [resend.com](https://resend.com).
+2. Go to **Domains** and add **zenvx.in**, then add the DNS records Resend gives you (SPF/DKIM) at your domain registrar. Wait for the domain to show as **Verified**.
+   - Until the domain is verified you can test with Resend's sandbox sender `onboarding@resend.dev` as the `CONTACT_FROM` value.
+3. Go to **API Keys → Create API Key** (give it *Sending access*). Copy the key — it starts with `re_`. This is your `RESEND_API_KEY`.
+4. Decide your sender and recipients:
+   - **`CONTACT_FROM`** — a verified address on your domain, e.g. `ZenvX Website <noreply@zenvx.in>`.
+   - **`CONTACT_TO`** — where enquiries land, e.g. `sk@zenvx.in, abhi@zenvx.in` (comma-separated).
+
+> The function also sets `reply_to` to the visitor's email address, so you can reply to enquiries directly from your inbox.
 
 ---
 
@@ -109,10 +103,9 @@ This project is built specifically for **Cloudflare Pages** (static assets + Fun
    - **Build command:** *(leave empty)*
    - **Build output directory:** `/` (repo root — where `index.html` lives)
 4. Add the environment variables under **Settings → Environment variables** (for both Production and Preview):
-   - `EMAILJS_SERVICE_ID`
-   - `EMAILJS_TEMPLATE_ID`
-   - `EMAILJS_PUBLIC_KEY`
-   - `EMAILJS_PRIVATE_KEY`
+   - `RESEND_API_KEY`
+   - `CONTACT_FROM`
+   - `CONTACT_TO`
 5. Deploy. Cloudflare auto-detects `functions/api/contact.js` and serves it at `https://<your-site>/api/contact`.
 6. Add your custom domain `www.zenvx.in` under the project's **Custom domains** tab.
 
@@ -122,9 +115,9 @@ After deploying, confirm `https://www.zenvx.in/sitemap.xml` and `https://www.zen
 
 ## 🔒 Security Notes
 
-- **No secret keys in the browser.** The EmailJS service/template/public/private keys live only in Cloudflare environment variables and are used inside the serverless function.
+- **No secret keys in the browser.** The Resend API key lives only in Cloudflare environment variables and is used inside the serverless function.
 - **Honeypot** hidden field (`company_website`) is checked on both client and server.
-- **Input sanitization** strips HTML tags and control characters on both client and server before the email is sent.
+- **Input sanitization** strips HTML tags and control characters on both client and server, and the email body is HTML-escaped before sending.
 - **Validation** runs client-side (for UX) and again server-side (authoritative).
 - **Rate limiting** disables the submit button for 60 seconds (tracked via `localStorage`) after a successful send.
 - The function only accepts `POST`; other methods return `405`.
@@ -139,7 +132,7 @@ After deploying, confirm `https://www.zenvx.in/sitemap.xml` and `https://www.zen
 | **About** | Five focus-area cards, founder profile cards, animated mission statement |
 | **Products** | CUSAT PYQ featured card with shimmer border, vertical product roadmap |
 | **Upcoming** | ZenvX OS feature grid, 5-phase development roadmap, other upcoming projects |
-| **Contact** | Founder contact cards + validated form → `/api/contact` → EmailJS |
+| **Contact** | Founder contact cards + validated form → `/api/contact` → Resend |
 
 ---
 

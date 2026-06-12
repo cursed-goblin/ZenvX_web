@@ -3,24 +3,28 @@
    Path: /api/contact  (file: functions/api/contact.js)
 
    Receives the contact form POST, validates + sanitizes
-   server-side, then sends an email via the EmailJS REST API
-   using SERVER-SIDE credentials (kept out of the browser).
+   server-side, then sends an email via the Resend REST API
+   using a SERVER-SIDE API key (kept out of the browser).
 
    Required environment variables (set in the Cloudflare
    Pages dashboard → Settings → Environment variables):
-     EMAILJS_SERVICE_ID    — your EmailJS service id
-     EMAILJS_TEMPLATE_ID   — your EmailJS template id
-     EMAILJS_PUBLIC_KEY    — EmailJS public key (user_id)
-     EMAILJS_PRIVATE_KEY   — EmailJS private key (accessToken)
+     RESEND_API_KEY  — your Resend API key (starts with "re_")
+     CONTACT_FROM    — verified sender, e.g.
+                       "ZenvX Website <noreply@zenvx.in>"
+     CONTACT_TO      — recipient(s), comma-separated
+                       (defaults to sk@zenvx.in, abhi@zenvx.in)
 
-   In your EmailJS account, enable
-   "Allow EmailJS API for non-browser applications"
-   (Account → Security) so server-side calls are accepted.
+   In Resend → Domains, verify your sending domain (zenvx.in)
+   so the CONTACT_FROM address is allowed to send. Until the
+   domain is verified you can test with Resend's sandbox
+   sender "onboarding@resend.dev".
    ========================================================= */
 
-const EMAILJS_ENDPOINT = "https://api.emailjs.com/api/v1.0/email/send";
+const RESEND_ENDPOINT = "https://api.resend.com/emails";
 const MIN_MESSAGE_LEN = 20;
 const MAX_LEN = 5000;
+const DEFAULT_FROM = "ZenvX Website <onboarding@resend.dev>";
+const DEFAULT_TO = "sk@zenvx.in, abhi@zenvx.in";
 
 function json(data, status) {
 	return new Response(JSON.stringify(data), {
@@ -35,6 +39,16 @@ function sanitize(value) {
 		.replace(/[\u0000-\u001F\u007F]/g, "")
 		.slice(0, MAX_LEN)
 		.trim();
+}
+
+// HTML-escape sanitized values before embedding them in the email body.
+function esc(value) {
+	return String(value == null ? "" : value)
+		.replace(/&/g, "&amp;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;")
+		.replace(/"/g, "&quot;")
+		.replace(/'/g, "&#39;");
 }
 
 function isEmail(v) {
@@ -83,36 +97,62 @@ export async function onRequestPost(context) {
 	}
 
 	// Ensure server is configured
-	if (!env.EMAILJS_SERVICE_ID || !env.EMAILJS_TEMPLATE_ID || !env.EMAILJS_PUBLIC_KEY || !env.EMAILJS_PRIVATE_KEY) {
+	if (!env.RESEND_API_KEY) {
 		return json({ ok: false, error: "Email service is not configured." }, 500);
 	}
 
 	// Best-effort client IP (for spam triage inside the email)
 	const ip = request.headers.get("CF-Connecting-IP") || "unknown";
+	const time = new Date().toISOString();
+
+	const from = env.CONTACT_FROM || DEFAULT_FROM;
+	const toList = (env.CONTACT_TO || DEFAULT_TO)
+		.split(",")
+		.map(function (s) { return s.trim(); })
+		.filter(Boolean);
+
+	const subject = "New ZenvX enquiry — " + data.purpose + " — " + data.full_name;
+
+	const html =
+		'<div style="font-family:Inter,Arial,sans-serif;max-width:640px;margin:0 auto;color:#1a1c24;">' +
+			'<h2 style="margin:0 0 16px;">New contact form submission</h2>' +
+			'<table style="width:100%;border-collapse:collapse;font-size:14px;">' +
+				'<tr><td style="padding:6px 10px;font-weight:600;width:140px;">Name</td><td style="padding:6px 10px;">' + esc(data.full_name) + '</td></tr>' +
+				'<tr><td style="padding:6px 10px;font-weight:600;">Email</td><td style="padding:6px 10px;">' + esc(data.email) + '</td></tr>' +
+				'<tr><td style="padding:6px 10px;font-weight:600;">Phone</td><td style="padding:6px 10px;">' + esc(data.phone) + '</td></tr>' +
+				'<tr><td style="padding:6px 10px;font-weight:600;">Purpose</td><td style="padding:6px 10px;">' + esc(data.purpose) + '</td></tr>' +
+				'<tr><td style="padding:6px 10px;font-weight:600;vertical-align:top;">Message</td><td style="padding:6px 10px;white-space:pre-wrap;">' + esc(data.message) + '</td></tr>' +
+				'<tr><td style="padding:6px 10px;font-weight:600;">Time</td><td style="padding:6px 10px;">' + esc(time) + '</td></tr>' +
+				'<tr><td style="padding:6px 10px;font-weight:600;">IP</td><td style="padding:6px 10px;">' + esc(ip) + '</td></tr>' +
+			'</table>' +
+		'</div>';
+
+	const text =
+		"New contact form submission\n\n" +
+		"Name: " + data.full_name + "\n" +
+		"Email: " + data.email + "\n" +
+		"Phone: " + data.phone + "\n" +
+		"Purpose: " + data.purpose + "\n" +
+		"Message:\n" + data.message + "\n\n" +
+		"Time: " + time + "\n" +
+		"IP: " + ip + "\n";
 
 	const emailBody = {
-		service_id: env.EMAILJS_SERVICE_ID,
-		template_id: env.EMAILJS_TEMPLATE_ID,
-		user_id: env.EMAILJS_PUBLIC_KEY,       // EmailJS public key
-		accessToken: env.EMAILJS_PRIVATE_KEY,  // EmailJS private key (server-side only)
-		template_params: {
-			from_name: data.full_name,
-			phone: data.phone,
-			from_email: data.email,
-			purpose: data.purpose,
-			message: data.message,
-			time: new Date().toISOString(),
-			ip: ip,
-			// Recipients are best set in the EmailJS template's "To" field
-			// (sk@zenvx.in, abhi@zenvx.in). Passed here too for convenience.
-			to_email: "sk@zenvx.in, abhi@zenvx.in",
-		},
+		from: from,
+		to: toList,
+		reply_to: data.email,
+		subject: subject,
+		html: html,
+		text: text,
 	};
 
 	try {
-		const res = await fetch(EMAILJS_ENDPOINT, {
+		const res = await fetch(RESEND_ENDPOINT, {
 			method: "POST",
-			headers: { "Content-Type": "application/json" },
+			headers: {
+				"Authorization": "Bearer " + env.RESEND_API_KEY,
+				"Content-Type": "application/json",
+			},
 			body: JSON.stringify(emailBody),
 		});
 
