@@ -125,6 +125,12 @@
 							<span class="field-error" data-error-for="message"></span>
 						</div>
 
+						<!-- Cloudflare Turnstile CAPTCHA. Replace data-sitekey with your real site key from the Cloudflare dashboard. -->
+						<div class="form-group">
+							<div class="cf-turnstile" data-sitekey="YOUR_TURNSTILE_SITE_KEY" data-theme="dark"></div>
+							<span class="field-error" data-error-for="captcha"></span>
+						</div>
+
 						<button type="submit" class="btn btn-primary submit-btn">
 							<span class="spinner"></span>
 							<span class="btn-text">Send Message</span>
@@ -158,6 +164,8 @@
 	<!-- GSAP -->
 	<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+	<!-- Cloudflare Turnstile CAPTCHA -->
+	<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 	<!-- App scripts (form posts to the /api/contact Cloudflare Pages Function) -->
 	<script src="js/animations.js"></script>
 	<script src="js/main.js"></script>

@@ -1,0 +1,9 @@
+# Cloudflare Pages configuration
+# The presence of "pages_build_output_dir" tells Cloudflare to treat this
+# repository as a PAGES project (with the functions/ folder convention),
+# not a plain Worker. This is what makes /api/contact get detected and
+# deployed automatically.
+
+name = "zenvx-web"
+pages_build_output_dir = "."
+compatibility_date = "2024-11-01"
