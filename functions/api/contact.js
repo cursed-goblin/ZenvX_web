@@ -3,16 +3,19 @@
    Path: /api/contact  (file: functions/api/contact.js)
 
    Receives the contact form POST, validates + sanitizes
-   server-side, then sends an email via the Resend REST API
-   using a SERVER-SIDE API key (kept out of the browser).
+   server-side, verifies the Cloudflare Turnstile CAPTCHA,
+   then sends an email via the Resend REST API using a
+   SERVER-SIDE API key (kept out of the browser).
 
    Required environment variables (set in the Cloudflare
    Pages dashboard → Settings → Environment variables):
-     RESEND_API_KEY  — your Resend API key (starts with "re_")
-     CONTACT_FROM    — verified sender, e.g.
-                       "ZenvX Website <noreply@zenvx.in>"
-     CONTACT_TO      — recipient(s), comma-separated
-                       (defaults to sk@zenvx.in, abhi@zenvx.in)
+     RESEND_API_KEY        — your Resend API key (starts "re_")
+     CONTACT_FROM          — verified sender, e.g.
+                             "ZenvX Website <noreply@zenvx.in>"
+     CONTACT_TO            — recipient(s), comma-separated
+                             (defaults to sk@zenvx.in, abhi@zenvx.in)
+     TURNSTILE_SECRET_KEY  — Cloudflare Turnstile secret key
+                             (pairs with the site key in contact.html)
 
    In Resend → Domains, verify your sending domain (zenvx.in)
    so the CONTACT_FROM address is allowed to send. Until the
@@ -21,6 +24,7 @@
    ========================================================= */
 
 const RESEND_ENDPOINT = "https://api.resend.com/emails";
+const TURNSTILE_VERIFY_ENDPOINT = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 const MIN_MESSAGE_LEN = 20;
 const MAX_LEN = 5000;
 const DEFAULT_FROM = "ZenvX Website <onboarding@resend.dev>";
@@ -60,6 +64,24 @@ function isPhone(v) {
 	return /^[\d\s+()-]+$/.test(v) && digits.length >= 7 && digits.length <= 15;
 }
 
+// Verify the Turnstile token with Cloudflare. Returns true on success.
+async function verifyTurnstile(secret, token, ip) {
+	const body = new URLSearchParams();
+	body.append("secret", secret);
+	body.append("response", token);
+	if (ip && ip !== "unknown") body.append("remoteip", ip);
+	try {
+		const res = await fetch(TURNSTILE_VERIFY_ENDPOINT, {
+			method: "POST",
+			body: body,
+		});
+		const out = await res.json().catch(function () { return { success: false }; });
+		return out && out.success === true;
+	} catch (_) {
+		return false;
+	}
+}
+
 export async function onRequestPost(context) {
 	const { request, env } = context;
 
@@ -75,6 +97,9 @@ export async function onRequestPost(context) {
 	if (payload && typeof payload.company_website === "string" && payload.company_website.trim() !== "") {
 		return json({ ok: true });
 	}
+
+	// Best-effort client IP (used for captcha verify + spam triage in the email)
+	const ip = request.headers.get("CF-Connecting-IP") || "unknown";
 
 	// Sanitize
 	const data = {
@@ -96,15 +121,25 @@ export async function onRequestPost(context) {
 		return json({ ok: false, error: "Validation failed.", fields: errors }, 422);
 	}
 
-	// Ensure server is configured
+	// Turnstile CAPTCHA verification
+	const captchaToken = sanitize(payload["cf-turnstile-response"] || payload.turnstile_token);
+	if (!captchaToken) {
+		return json({ ok: false, error: "Please complete the CAPTCHA.", fields: ["captcha"] }, 400);
+	}
+	if (!env.TURNSTILE_SECRET_KEY) {
+		return json({ ok: false, error: "Captcha is not configured." }, 500);
+	}
+	const captchaOk = await verifyTurnstile(env.TURNSTILE_SECRET_KEY, captchaToken, ip);
+	if (!captchaOk) {
+		return json({ ok: false, error: "Captcha verification failed. Please try again.", fields: ["captcha"] }, 403);
+	}
+
+	// Ensure email service is configured
 	if (!env.RESEND_API_KEY) {
 		return json({ ok: false, error: "Email service is not configured." }, 500);
 	}
 
-	// Best-effort client IP (for spam triage inside the email)
-	const ip = request.headers.get("CF-Connecting-IP") || "unknown";
 	const time = new Date().toISOString();
-
 	const from = env.CONTACT_FROM || DEFAULT_FROM;
 	const toList = (env.CONTACT_TO || DEFAULT_TO)
 		.split(",")

@@ -1,9 +1,11 @@
 /* =========================================================
    ZenvX AI Studio — contact.js
    Contact form (client). Validates, sanitizes, blocks bots
-   (honeypot), rate-limits, then POSTs to a Cloudflare Pages
-   serverless Function at /api/contact which sends the email
-   via Resend server-side. No database, no client-side keys.
+   (honeypot + Cloudflare Turnstile CAPTCHA), rate-limits,
+   then POSTs to a Cloudflare Pages serverless Function at
+   /api/contact which verifies the captcha and sends the
+   email via Resend server-side. No database, no client-side
+   secrets.
    ========================================================= */
 (function () {
 	"use strict";
@@ -51,6 +53,19 @@
 		if (!status) return;
 		status.className = "form-status " + (type || "");
 		status.innerHTML = html || "";
+	}
+
+	// Read the Turnstile token from the hidden input the widget injects.
+	function getCaptchaToken(form) {
+		const el = form.querySelector('[name="cf-turnstile-response"]');
+		return el ? el.value : "";
+	}
+
+	// Reset the Turnstile widget so a fresh token is issued for the next try.
+	function resetCaptcha() {
+		if (window.turnstile && typeof window.turnstile.reset === "function") {
+			try { window.turnstile.reset(); } catch (_) { /* noop */ }
+		}
 	}
 
 	/* ---------- Rate limit ---------- */
@@ -105,6 +120,7 @@
 		form.addEventListener("submit", async function (e) {
 			e.preventDefault();
 			clearErrors(FIELDS);
+			setError("captcha", "");
 			setStatus(form, "", "");
 
 			// Honeypot — if filled, silently abort (likely a bot)
@@ -139,7 +155,16 @@
 			else if (data.message.length < MIN_MESSAGE_LEN) {
 				setError("message", "Message must be at least " + MIN_MESSAGE_LEN + " characters."); ok = false;
 			}
+
+			// Turnstile CAPTCHA — must be completed before sending
+			const captchaToken = getCaptchaToken(form);
+			if (!captchaToken) {
+				setError("captcha", "Please complete the CAPTCHA.");
+				ok = false;
+			}
 			if (!ok) return;
+
+			data["cf-turnstile-response"] = captchaToken;
 
 			// Submit to the Cloudflare Pages Function
 			if (btn) { btn.classList.add("loading"); btn.disabled = true; }
@@ -156,6 +181,10 @@
 
 				if (!res.ok || !body || body.ok !== true) {
 					const msg = (body && body.error) ? body.error : ("Request failed (" + res.status + ").");
+					// Surface captcha-specific failures next to the widget
+					if (body && body.fields && body.fields.indexOf("captcha") !== -1) {
+						setError("captcha", msg);
+					}
 					throw new Error(msg);
 				}
 
@@ -163,11 +192,13 @@
 				setStatus(form, "success",
 					'<div class="check-anim">✓</div>Message sent! We\'ll get back to you soon.');
 				form.reset();
+				resetCaptcha();
 				if (btn) startCooldown(btn);
 			} catch (err) {
 				console.error(err);
 				setStatus(form, "error",
 					"Something went wrong while sending your message. Please try again.");
+				resetCaptcha(); // token is single-use; get a fresh one for the retry
 				if (btn) btn.disabled = false;
 			} finally {
 				if (btn) btn.classList.remove("loading");
