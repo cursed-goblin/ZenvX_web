@@ -7,20 +7,15 @@
    then sends an email via the Resend REST API using a
    SERVER-SIDE API key (kept out of the browser).
 
-   Required environment variables (set in the Cloudflare
-   Pages dashboard → Settings → Environment variables):
+   Required environment variables (Cloudflare Pages dashboard
+   → Settings → Variables and secrets):
      RESEND_API_KEY        — your Resend API key (starts "re_")
      CONTACT_FROM          — verified sender, e.g.
                              "ZenvX Website <noreply@zenvx.in>"
+                             (the domain MUST be verified in Resend)
      CONTACT_TO            — recipient(s), comma-separated
-                             (defaults to sk@zenvx.in, abhi@zenvx.in)
      TURNSTILE_SECRET_KEY  — Cloudflare Turnstile secret key
                              (pairs with the site key in contact.html)
-
-   In Resend → Domains, verify your sending domain (zenvx.in)
-   so the CONTACT_FROM address is allowed to send. Until the
-   domain is verified you can test with Resend's sandbox
-   sender "onboarding@resend.dev".
    ========================================================= */
 
 const RESEND_ENDPOINT = "https://api.resend.com/emails";
@@ -71,10 +66,7 @@ async function verifyTurnstile(secret, token, ip) {
 	body.append("response", token);
 	if (ip && ip !== "unknown") body.append("remoteip", ip);
 	try {
-		const res = await fetch(TURNSTILE_VERIFY_ENDPOINT, {
-			method: "POST",
-			body: body,
-		});
+		const res = await fetch(TURNSTILE_VERIFY_ENDPOINT, { method: "POST", body: body });
 		const out = await res.json().catch(function () { return { success: false }; });
 		return out && out.success === true;
 	} catch (_) {
@@ -82,7 +74,7 @@ async function verifyTurnstile(secret, token, ip) {
 	}
 }
 
-export async function onRequestPost(context) {
+async function handlePost(context) {
 	const { request, env } = context;
 
 	// Parse JSON body
@@ -92,9 +84,12 @@ export async function onRequestPost(context) {
 	} catch (_) {
 		return json({ ok: false, error: "Invalid request body." }, 400);
 	}
+	if (!payload || typeof payload !== "object") {
+		return json({ ok: false, error: "Invalid request body." }, 400);
+	}
 
 	// Honeypot — silently accept so bots don't learn they were blocked
-	if (payload && typeof payload.company_website === "string" && payload.company_website.trim() !== "") {
+	if (typeof payload.company_website === "string" && payload.company_website.trim() !== "") {
 		return json({ ok: true });
 	}
 
@@ -127,7 +122,7 @@ export async function onRequestPost(context) {
 		return json({ ok: false, error: "Please complete the CAPTCHA.", fields: ["captcha"] }, 400);
 	}
 	if (!env.TURNSTILE_SECRET_KEY) {
-		return json({ ok: false, error: "Captcha is not configured." }, 500);
+		return json({ ok: false, error: "Captcha is not configured (missing TURNSTILE_SECRET_KEY)." }, 500);
 	}
 	const captchaOk = await verifyTurnstile(env.TURNSTILE_SECRET_KEY, captchaToken, ip);
 	if (!captchaOk) {
@@ -136,7 +131,7 @@ export async function onRequestPost(context) {
 
 	// Ensure email service is configured
 	if (!env.RESEND_API_KEY) {
-		return json({ ok: false, error: "Email service is not configured." }, 500);
+		return json({ ok: false, error: "Email service is not configured (missing RESEND_API_KEY)." }, 500);
 	}
 
 	const time = new Date().toISOString();
@@ -181,24 +176,34 @@ export async function onRequestPost(context) {
 		text: text,
 	};
 
+	const res = await fetch(RESEND_ENDPOINT, {
+		method: "POST",
+		headers: {
+			"Authorization": "Bearer " + env.RESEND_API_KEY,
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify(emailBody),
+	});
+
+	if (!res.ok) {
+		const detailText = await res.text().catch(function () { return ""; });
+		// Put the provider's real message in BOTH fields so it always surfaces.
+		return json({
+			ok: false,
+			error: "Resend rejected the email (HTTP " + res.status + "). " + detailText.slice(0, 400),
+			detail: detailText.slice(0, 400),
+		}, 502);
+	}
+
+	return json({ ok: true });
+}
+
+export async function onRequestPost(context) {
 	try {
-		const res = await fetch(RESEND_ENDPOINT, {
-			method: "POST",
-			headers: {
-				"Authorization": "Bearer " + env.RESEND_API_KEY,
-				"Content-Type": "application/json",
-			},
-			body: JSON.stringify(emailBody),
-		});
-
-		if (!res.ok) {
-			const detail = await res.text().catch(function () { return ""; });
-			return json({ ok: false, error: "Email provider error.", detail: detail.slice(0, 300) }, 502);
-		}
-
-		return json({ ok: true });
+		return await handlePost(context);
 	} catch (err) {
-		return json({ ok: false, error: "Failed to send email." }, 500);
+		const detail = String(err && err.stack ? err.stack : err).slice(0, 400);
+		return json({ ok: false, error: "Server exception: " + detail, detail: detail }, 500);
 	}
 }
 
