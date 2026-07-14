@@ -598,6 +598,8 @@ body::before {
 .cta-band .actions { display: flex; gap: var(--s3); justify-content: center; flex-wrap: wrap; margin-top: var(--s6); }
 
 /* ------------------------------ Contact form --------------------------- */
+/* Two-column founders | form layout; collapses to one column on tablet/phone */
+.contact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s7); align-items: start; }
 .form-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--s7); }
 .field { display: grid; gap: var(--s2); margin-bottom: var(--s4); }
 .field label { font-size: 0.85rem; color: var(--text-2); font-weight: 550; }
@@ -652,14 +654,28 @@ body::before {
 .reveal.d4 { transition-delay: .24s; }
 
 /* ------------------------------ Responsive ----------------------------- */
-@media (max-width: 960px) {
-  .hero-grid { grid-template-columns: 1fr; gap: var(--s7); }
+/* Standardized device breakpoints:
+   1024px  tablet landscape / small laptop
+    860px  tablet portrait  (primary nav collapses to a toggle menu)
+    640px  large phones
+    420px  small phones                                                   */
+
+/* ---- Tablet landscape / small laptop ---- */
+@media (max-width: 1024px) {
+  .hero-grid { gap: var(--s6); }
+  .grid-3 { grid-template-columns: repeat(2, 1fr); }
   .grid-4 { grid-template-columns: repeat(2, 1fr); }
-  .footer-grid { grid-template-columns: 1fr 1fr; }
+  .footer-grid { gap: var(--s6); }
 }
-@media (max-width: 720px) {
+
+/* ---- Tablet portrait: primary nav collapses ---- */
+@media (max-width: 860px) {
   :root { --nav-h: 60px; }
   .section { padding-block: var(--s8); }
+  .hero-grid { grid-template-columns: 1fr; gap: var(--s7); }
+  .contact-grid { grid-template-columns: 1fr; gap: var(--s6); }
+  .footer-grid { grid-template-columns: 1fr 1fr; }
+
   .nav-links {
     position: absolute;
     top: var(--nav-h); left: 0; right: 0;
@@ -669,6 +685,7 @@ body::before {
     padding: var(--s3) var(--s5) var(--s5);
     background: var(--bg-elev);
     border-bottom: 1px solid var(--border);
+    box-shadow: var(--shadow);
     transform: translateY(-8px);
     opacity: 0; pointer-events: none;
     transition: opacity .2s ease, transform .2s ease;
@@ -677,18 +694,39 @@ body::before {
   .nav-links a { padding: var(--s3); border-radius: var(--r-sm); }
   .nav-links a.active::after { display: none; }
   .nav-toggle { display: inline-flex; }
-  .nav-right .btn-primary { display: none; }   /* CTA moves into menu on mobile */
-  .nav.open .nav-links .btn-primary { display: inline-flex; margin-top: var(--s2); }
+  .nav-right .btn-primary { display: none; }   /* CTA moves into the menu */
+  .nav.open .nav-links .btn-primary { display: inline-flex; justify-content: center; margin-top: var(--s2); }
+}
+
+/* ---- Large phones ---- */
+@media (max-width: 640px) {
+  .section { padding-block: var(--s7); }
   .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
   .founder-grid { grid-template-columns: 1fr; }
-  .tl-item { grid-template-columns: 1fr; gap: var(--s2); }
+  .tl-item { grid-template-columns: 1fr; gap: var(--s2); padding: var(--s5); }
   .footer-grid { grid-template-columns: 1fr; gap: var(--s6); }
   .footer p { max-width: none; }
+  .footer-bottom { flex-direction: column; align-items: flex-start; gap: var(--s2); }
   .result { grid-template-columns: 1fr; }
+  .pipe { flex-wrap: wrap; }
+
+  /* Lighter padding on large surfaces */
+  .product-card { padding: var(--s6); }
+  .form-card { padding: var(--s6); }
+  .card { padding: var(--s5); }
+  .cta-band { padding: var(--s7) var(--s5); }
+
+  /* Full-width primary actions on phones */
+  .hero-actions, .cta-band .actions { flex-direction: column; align-items: stretch; }
+  .hero-actions .btn, .cta-band .actions .btn { width: 100%; }
 }
-@media (max-width: 400px) {
+
+/* ---- Small phones ---- */
+@media (max-width: 420px) {
   .container { padding-inline: var(--s4); }
-  .osbody { padding: var(--s4); }
+  .osbody { padding: var(--s4); min-height: 300px; }
+  .pipe .step { font-size: 0.68rem; padding: 5px 9px; }
+  .founder-card, .form-card, .product-card { padding: var(--s5); }
 }
 
 /* ------------------------------ Reduced motion ------------------------- */
